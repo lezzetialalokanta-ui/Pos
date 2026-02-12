@@ -9,7 +9,13 @@
 *{box-sizing:border-box;font-family:Segoe UI}
 body{margin:0;background:#0f172a;color:white}
 .app{display:flex;height:100vh}
-
+  
+#salesList .card{
+  width:100%;
+  background:#020617;
+  border:1px solid #00e5ff;
+}
+  
 /* SOL MENÜ */
 .sidebar{
 width:240px;background:#111827;padding:10px;display:flex;flex-direction:column}
@@ -99,7 +105,12 @@ input,select{padding:8px;margin:5px;width:100%}
 <input id="cName" placeholder="Kategori adı">
 <button onclick="addCategory()">Ekle</button>
 </div>
-
+  
+<h3>📊 Satış Geçmişi</h3>
+<button onclick="clearSales()">🗑️ Tüm Satışları Sil</button>
+<div id="salesList">
+</div>
+  
 </div>
 
 <!-- SEPET -->
@@ -112,6 +123,8 @@ input,select{padding:8px;margin:5px;width:100%}
 </div>
 
 <script>
+  let sales = JSON.parse(localStorage.getItem("sales")) || [];
+  
 // DATA
 let products = JSON.parse(localStorage.getItem("products")) || [
 {name:"Köfte",price:120},
@@ -171,10 +184,29 @@ document.getElementById("total").innerText=total;
 }
 
 // ÖDEME
-function pay(method){
-document.getElementById("payResult").innerHTML="✅ "+method+" ile ödeme alındı!";
-cart=[];renderCart();
-}
+  function pay(method){
+
+  let total = 0;
+  let items = cart.map(c=>c.name);
+  cart.forEach(c=> total += Number(c.price));
+
+  let sale = {
+    date: new Date().toLocaleString(),
+    method: method,
+    total: total,
+    items: items
+  };
+
+  sales.push(sale);
+  saveSales();
+
+  document.getElementById("payResult").innerHTML =
+  "✅ " + method + " ile ödeme alındı! ("+total+" TL)";
+
+  cart=[];
+  renderCart();
+  renderSales();
+  }
 
 // ADMIN
 function addProduct(){
@@ -196,6 +228,45 @@ function save(){
 localStorage.setItem("products",JSON.stringify(products));
 localStorage.setItem("tables",JSON.stringify(tables));
 }
+  function saveSales(){
+  localStorage.setItem("sales", JSON.stringify(sales));
+}
+
+// SATIŞ LİSTESİ GÖSTER
+function renderSales(){
+  let html="";
+  sales.forEach((s,i)=>{
+    html += `
+    <div class="card">
+    🕒 ${s.date}<br>
+    💳 ${s.method}<br>
+    🧾 ${s.items.join(", ")}<br>
+    💰 ${s.total} TL
+    <br><button onclick="delSale(${i})">❌ Sil</button>
+    </div>
+    `;
+  });
+  document.getElementById("salesList").innerHTML = html;
+}
+renderSales();
+
+// SATIŞ SİL
+function delSale(i){
+  if(confirm("Satış silinsin mi?")){
+    sales.splice(i,1);
+    saveSales();
+    renderSales();
+  }
+}
+
+// TÜM SATIŞLARI SİL
+function clearSales(){
+  if(confirm("TÜM SATIŞLAR SİLİNECEK!")){
+    sales=[];
+    saveSales();
+    renderSales();
+  }
+    }
 </script>
 
 </body>

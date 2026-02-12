@@ -3,8 +3,200 @@
 <head>
 <meta charset="UTF-8">
 <title>Lezzet-i Ala POS</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+*{box-sizing:border-box;font-family:Segoe UI}
+body{margin:0;background:#0f172a;color:white}
+.app{display:flex;height:100vh}
+
+/* SOL MENÜ */
+.sidebar{
+width:240px;background:#111827;padding:10px;display:flex;flex-direction:column}
+.sidebar h2{text-align:center;color:#00e5ff}
+.sidebar button{
+padding:10px;margin:5px;border:none;border-radius:6px;background:#1f2937;color:white;cursor:pointer}
+.sidebar button:hover{background:#00e5ff;color:black}
+
+/* ORTA */
+.main{flex:1;padding:10px;background:#020617;overflow:auto}
+.card{
+background:#111827;padding:12px;border-radius:10px;display:inline-block;width:180px;margin:10px;text-align:center;cursor:pointer}
+.card:hover{background:#00e5ff;color:black}
+
+/* SEPET */
+.cart{
+width:300px;background:#111827;padding:10px;border-left:2px solid #00e5ff}
+.cart h3{text-align:center;color:#00e5ff}
+.cart-item{display:flex;justify-content:space-between;margin:5px 0}
+.cart-total{font-size:22px;color:yellow;text-align:center;margin-top:10px}
+
+/* ÖDEME */
+.pay-buttons button{
+padding:15px;margin:5px;font-size:18px;border:none;border-radius:8px;background:#00c853;cursor:pointer}
+.pay-buttons button:hover{background:#00a846}
+
+/* TELEFON */
+@media(max-width:900px){
+.app{flex-direction:column}
+.sidebar{width:100%;flex-direction:row;overflow:auto}
+.cart{width:100%;border-left:none;border-top:2px solid #00e5ff}
+.card{width:45%}
+}
+@media(max-width:500px){
+.card{width:100%}
+}
+.hidden{display:none}
+input,select{padding:8px;margin:5px;width:100%}
+</style>
 </head>
-<body style="background:black;color:white;font-size:40px">
-POS ÇALIŞIYOR UMUT 💻🔥
+
+<body>
+<div class="app">
+
+<!-- SOL MENÜ -->
+<div class="sidebar">
+<h2>🧾 LEZZET-İ ALA POS</h2>
+<button onclick="showPanel('products')">🍔 Ürünler</button>
+<button onclick="showPanel('tables')">🍽️ Masalar</button>
+<button onclick="showPanel('payment')">💰 Ödeme</button>
+<button onclick="showPanel('admin')">⚙️ Admin Panel</button>
+</div>
+
+<!-- ORTA PANEL -->
+<div class="main">
+
+<div id="products" class="panel">
+<h2>Ürünler</h2>
+<div id="productList"></div>
+</div>
+
+<div id="tables" class="panel hidden">
+<h2>Masalar</h2>
+<div id="tableList"></div>
+<button onclick="addTable()">➕ Masa Ekle</button>
+</div>
+
+<div id="payment" class="panel hidden">
+<h2>Ödeme Al</h2>
+<div class="pay-buttons">
+<button onclick="pay('Nakit')">💵 Nakit</button>
+<button onclick="pay('Kart')">💳 Kredi Kartı</button>
+<button onclick="pay('QR')">📱 QR Kod</button>
+</div>
+<h3 id="payResult"></h3>
+</div>
+
+<div id="admin" class="panel hidden">
+<h2>Admin Panel</h2>
+
+<h3>📦 Ürün Ekle</h3>
+<input id="pName" placeholder="Ürün adı">
+<input id="pPrice" placeholder="Fiyat">
+<button onclick="addProduct()">Ekle</button>
+
+<h3>🗂️ Kategori Ekle</h3>
+<input id="cName" placeholder="Kategori adı">
+<button onclick="addCategory()">Ekle</button>
+</div>
+
+</div>
+
+<!-- SEPET -->
+<div class="cart">
+<h3>Sepet</h3>
+<div id="cartList"></div>
+<div class="cart-total">Toplam: <span id="total">0</span> TL</div>
+</div>
+
+</div>
+
+<script>
+// DATA
+let products = JSON.parse(localStorage.getItem("products")) || [
+{name:"Köfte",price:120},
+{name:"Kokoreç",price:140}
+];
+let tables = JSON.parse(localStorage.getItem("tables")) || ["Masa 1","Masa 2"];
+let cart = [];
+
+// PANEL
+function showPanel(id){
+document.querySelectorAll(".panel").forEach(p=>p.classList.add("hidden"));
+document.getElementById(id).classList.remove("hidden");
+}
+
+// ÜRÜN GÖSTER
+function renderProducts(){
+let html="";
+products.forEach((p,i)=>{
+html+=`<div class="card" onclick="addCart(${i})">${p.name}<br>${p.price} TL</div>`;
+});
+document.getElementById("productList").innerHTML=html;
+}
+renderProducts();
+
+// MASALAR
+function renderTables(){
+let html="";
+tables.forEach((t,i)=>{
+html+=`<div class="card">${t} <button onclick="delTable(${i})">❌</button></div>`;
+});
+document.getElementById("tableList").innerHTML=html;
+}
+renderTables();
+
+function addTable(){
+let name=prompt("Masa adı");
+if(name){tables.push(name);save();renderTables();}
+}
+function delTable(i){
+tables.splice(i,1);save();renderTables();
+}
+
+// SEPET
+function addCart(i){
+cart.push(products[i]);
+renderCart();
+}
+function renderCart(){
+let html="";
+let total=0;
+cart.forEach((c)=>{
+total+=Number(c.price);
+html+=`<div class="cart-item">${c.name} - ${c.price} TL</div>`;
+});
+document.getElementById("cartList").innerHTML=html;
+document.getElementById("total").innerText=total;
+}
+
+// ÖDEME
+function pay(method){
+document.getElementById("payResult").innerHTML="✅ "+method+" ile ödeme alındı!";
+cart=[];renderCart();
+}
+
+// ADMIN
+function addProduct(){
+let name=pName.value;
+let price=pPrice.value;
+if(name && price){
+products.push({name,price});
+save();renderProducts();
+alert("Ürün eklendi");
+}
+}
+
+function addCategory(){
+alert("Kategori sistemi PRO sürümde 😎 (istersen eklerim)");
+}
+
+// KAYDET
+function save(){
+localStorage.setItem("products",JSON.stringify(products));
+localStorage.setItem("tables",JSON.stringify(tables));
+}
+</script>
+
 </body>
 </html>

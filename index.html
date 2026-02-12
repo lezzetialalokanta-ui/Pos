@@ -9,7 +9,7 @@
 *{box-sizing:border-box;font-family:Segoe UI}
 body{margin:0;background:#0f172a;color:white}
 .app{display:flex;height:100vh}
-  
+
 /* SOL MENÜ */
 .sidebar{
 width:240px;background:#111827;padding:10px;display:flex;flex-direction:column}
@@ -36,6 +36,15 @@ width:300px;background:#111827;padding:10px;border-left:2px solid #00e5ff}
 padding:15px;margin:5px;font-size:18px;border:none;border-radius:8px;background:#00c853;cursor:pointer}
 .pay-buttons button:hover{background:#00a846}
 
+/* ADMIN SEKME */
+.admin-tabs button{
+padding:10px;margin:5px;border:none;border-radius:6px;background:#1f2937;color:white;cursor:pointer}
+.admin-tabs button:hover{background:#00e5ff;color:black}
+
+/* PANEL */
+.panel{display:none}
+.panel.active{display:block}
+
 /* TELEFON */
 @media(max-width:900px){
 .app{flex-direction:column}
@@ -46,8 +55,7 @@ padding:15px;margin:5px;font-size:18px;border:none;border-radius:8px;background:
 @media(max-width:500px){
 .card{width:100%}
 }
-.hidden{display:none}
-input,select{padding:8px;margin:5px;width:100%}
+input{padding:8px;margin:5px;width:100%}
 </style>
 </head>
 
@@ -63,48 +71,73 @@ input,select{padding:8px;margin:5px;width:100%}
 <button onclick="showPanel('admin')">⚙️ Admin Panel</button>
 </div>
 
-<!-- ORTA PANEL -->
+<!-- ORTA -->
 <div class="main">
 
-<div id="products" class="panel">
+<!-- ÜRÜNLER -->
+<div id="products" class="panel active">
 <h2>Ürünler</h2>
 <div id="productList"></div>
 </div>
 
-<div id="tables" class="panel hidden">
+<!-- MASALAR -->
+<div id="tables" class="panel">
 <h2>Masalar</h2>
 <div id="tableList"></div>
 <button onclick="addTable()">➕ Masa Ekle</button>
 </div>
 
-<div id="payment" class="panel hidden">
-<h2>Ödeme Al</h2>
+<!-- ÖDEME -->
+<div id="payment" class="panel">
+<h2>Ödeme</h2>
 <div class="pay-buttons">
 <button onclick="pay('Nakit')">💵 Nakit</button>
-<button onclick="pay('Kart')">💳 Kredi Kartı</button>
-<button onclick="pay('QR')">📱 QR Kod</button>
+<button onclick="pay('Kart')">💳 Kart</button>
+<button onclick="pay('QR')">📱 QR</button>
 </div>
 <h3 id="payResult"></h3>
 </div>
 
-<div id="admin" class="panel hidden">
-<h2>Admin Panel</h2>
+<!-- ADMIN -->
+<div id="admin" class="panel">
+<h2>⚙️ Admin Panel</h2>
 
-<h3>📦 Ürün Ekle</h3>
+<div class="admin-tabs">
+<button onclick="showAdminTab('adminProducts')">📦 Ürün Yönetimi</button>
+<button onclick="showAdminTab('adminTables')">🍽️ Masa Yönetimi</button>
+<button onclick="showAdminTab('adminSales')">📊 Satış Geçmişi</button>
+<button onclick="showAdminTab('adminReport')">💰 Kasa Raporu</button>
+</div>
+
+<!-- ÜRÜN YÖNETİMİ -->
+<div id="adminProducts" class="adminTab active">
+<h3>Ürün Ekle</h3>
 <input id="pName" placeholder="Ürün adı">
 <input id="pPrice" placeholder="Fiyat">
 <button onclick="addProduct()">Ekle</button>
+</div>
 
-<h3>🗂️ Kategori Ekle</h3>
-<input id="cName" placeholder="Kategori adı">
-<button onclick="addCategory()">Ekle</button>
+<!-- MASA YÖNETİMİ -->
+<div id="adminTables" class="adminTab">
+<h3>Masa Listesi</h3>
+<div id="adminTableList"></div>
 </div>
-  
-<h3>📊 Satış Geçmişi</h3>
-<button onclick="clearSales()">🗑️ Tüm Satışları Sil</button>
-<div id="salesList">
+
+<!-- SATIŞ GEÇMİŞİ -->
+<div id="adminSales" class="adminTab">
+<h3>Satış Geçmişi</h3>
+<button onclick="clearSales()">🗑️ Hepsini Sil</button>
+<div id="salesList"></div>
 </div>
-  
+
+<!-- KASA RAPORU -->
+<div id="adminReport" class="adminTab">
+<h3>Bugünkü Ciro</h3>
+<h1 id="dailyTotal">0 TL</h1>
+</div>
+
+</div>
+
 </div>
 
 <!-- SEPET -->
@@ -117,29 +150,35 @@ input,select{padding:8px;margin:5px;width:100%}
 </div>
 
 <script>
-  let sales = JSON.parse(localStorage.getItem("sales")) || [];
-  
 // DATA
 let products = JSON.parse(localStorage.getItem("products")) || [
 {name:"Köfte",price:120},
 {name:"Kokoreç",price:140}
 ];
-let tables = JSON.parse(localStorage.getItem("tables")) || ["Masa 1","Masa 2"];
-let cart = [];
+let tables = JSON.parse(localStorage.getItem("tables")) || ["Masa 1"];
+let sales = JSON.parse(localStorage.getItem("sales")) || [];
+let cart=[];
 
-// PANEL
+// PANEL GÖSTER
 function showPanel(id){
-document.querySelectorAll(".panel").forEach(p=>p.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
+document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
-// ÜRÜN GÖSTER
+// ADMIN SEKME
+function showAdminTab(id){
+document.querySelectorAll(".adminTab").forEach(t=>t.style.display="none");
+document.getElementById(id).style.display="block";
+}
+showAdminTab("adminProducts");
+
+// ÜRÜNLER
 function renderProducts(){
 let html="";
 products.forEach((p,i)=>{
 html+=`<div class="card" onclick="addCart(${i})">${p.name}<br>${p.price} TL</div>`;
 });
-document.getElementById("productList").innerHTML=html;
+productList.innerHTML=html;
 }
 renderProducts();
 
@@ -149,13 +188,15 @@ let html="";
 tables.forEach((t,i)=>{
 html+=`<div class="card">${t} <button onclick="delTable(${i})">❌</button></div>`;
 });
-document.getElementById("tableList").innerHTML=html;
+tableList.innerHTML=html;
+adminTableList.innerHTML=html;
 }
 renderTables();
 
 function addTable(){
 let name=prompt("Masa adı");
-if(name){tables.push(name);save();renderTables();}
+if(name){tables.push(name);save();}
+renderTables();
 }
 function delTable(i){
 tables.splice(i,1);save();renderTables();
@@ -167,54 +208,75 @@ cart.push(products[i]);
 renderCart();
 }
 function renderCart(){
-let html="";
-let total=0;
-cart.forEach((c)=>{
-total+=Number(c.price);
-html+=`<div class="cart-item">${c.name} - ${c.price} TL</div>`;
-});
-document.getElementById("cartList").innerHTML=html;
+let total=0,html="";
+cart.forEach(c=>{total+=Number(c.price);html+=`<div>${c.name} - ${c.price} TL</div>`});
+cartList.innerHTML=html;
 document.getElementById("total").innerText=total;
 }
 
-// ÖDEME
-  function pay(method){
+// ÖDEME + SATIŞ KAYDI
+function pay(method){
+let total=0;
+cart.forEach(c=>total+=Number(c.price));
 
-  let total = 0;
-  let items = cart.map(c=>c.name);
-  cart.forEach(c=> total += Number(c.price));
+sales.push({
+date:new Date().toLocaleString(),
+method,
+items:cart.map(c=>c.name),
+total
+});
+saveSales();
+renderSales();
+renderReport();
 
-  let sale = {
-    date: new Date().toLocaleString(),
-    method: method,
-    total: total,
-    items: items
-  };
+document.getElementById("payResult").innerHTML="✅ "+method+" ile ödeme alındı";
+cart=[];renderCart();
+}
 
-  sales.push(sale);
-  saveSales();
-
-  document.getElementById("payResult").innerHTML =
-  "✅ " + method + " ile ödeme alındı! ("+total+" TL)";
-
-  cart=[];
-  renderCart();
-  renderSales();
-  }
-
-// ADMIN
+// ÜRÜN EKLE
 function addProduct(){
 let name=pName.value;
 let price=pPrice.value;
 if(name && price){
 products.push({name,price});
-save();renderProducts();
+save();
+renderProducts();
 alert("Ürün eklendi");
 }
 }
 
-function addCategory(){
-alert("Kategori sistemi PRO sürümde 😎 (istersen eklerim)");
+// SATIŞ GÖSTER
+function renderSales(){
+let html="";
+sales.forEach((s,i)=>{
+html+=`<div class="card">
+🕒 ${s.date}<br>
+💳 ${s.method}<br>
+🧾 ${s.items.join(", ")}<br>
+💰 ${s.total} TL<br>
+<button onclick="delSale(${i})">Sil</button>
+</div>`;
+});
+salesList.innerHTML=html;
+}
+renderSales();
+
+// RAPOR
+function renderReport(){
+let sum=0;
+sales.forEach(s=>sum+=Number(s.total));
+dailyTotal.innerText=sum+" TL";
+}
+renderReport();
+
+// SATIŞ SİL
+function delSale(i){
+sales.splice(i,1);saveSales();renderSales();renderReport();
+}
+function clearSales(){
+if(confirm("Tüm satışlar silinsin mi?")){
+sales=[];saveSales();renderSales();renderReport();
+}
 }
 
 // KAYDET
@@ -222,46 +284,10 @@ function save(){
 localStorage.setItem("products",JSON.stringify(products));
 localStorage.setItem("tables",JSON.stringify(tables));
 }
-  function saveSales(){
-  localStorage.setItem("sales", JSON.stringify(sales));
+function saveSales(){
+localStorage.setItem("sales",JSON.stringify(sales));
 }
-
-// SATIŞ LİSTESİ GÖSTER
-function renderSales(){
-  let html="";
-  sales.forEach((s,i)=>{
-    html += `
-    <div class="card">
-    🕒 ${s.date}<br>
-    💳 ${s.method}<br>
-    🧾 ${s.items.join(", ")}<br>
-    💰 ${s.total} TL
-    <br><button onclick="delSale(${i})">❌ Sil</button>
-    </div>
-    `;
-  });
-  document.getElementById("salesList").innerHTML = html;
-}
-renderSales();
-
-// SATIŞ SİL
-function delSale(i){
-  if(confirm("Satış silinsin mi?")){
-    sales.splice(i,1);
-    saveSales();
-    renderSales();
-  }
-}
-
-// TÜM SATIŞLARI SİL
-function clearSales(){
-  if(confirm("TÜM SATIŞLAR SİLİNECEK!")){
-    sales=[];
-    saveSales();
-    renderSales();
-  }
-    }
 </script>
 
 </body>
-</html>
+  </html>

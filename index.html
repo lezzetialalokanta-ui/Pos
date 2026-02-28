@@ -2,292 +2,34 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Lezzet-i Ala POS</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-*{box-sizing:border-box;font-family:Segoe UI}
-body{margin:0;background:#0f172a;color:white}
-.app{display:flex;height:100vh}
-
-/* SOL MENÜ */
-.sidebar{
-width:240px;background:#111827;padding:10px;display:flex;flex-direction:column}
-.sidebar h2{text-align:center;color:#00e5ff}
-.sidebar button{
-padding:10px;margin:5px;border:none;border-radius:6px;background:#1f2937;color:white;cursor:pointer}
-.sidebar button:hover{background:#00e5ff;color:black}
-
-/* ORTA */
-.main{flex:1;padding:10px;background:#020617;overflow:auto}
-.card{
-background:#111827;padding:12px;border-radius:10px;display:inline-block;width:180px;margin:10px;text-align:center;cursor:pointer}
-.card:hover{background:#00e5ff;color:black}
-
-/* SEPET */
-.cart{
-width:300px;background:#111827;padding:10px;border-left:2px solid #00e5ff}
-.cart h3{text-align:center;color:#00e5ff}
-.cart-item{display:flex;justify-content:space-between;margin:5px 0}
-.cart-total{font-size:22px;color:yellow;text-align:center;margin-top:10px}
-
-/* ÖDEME */
-.pay-buttons button{
-padding:15px;margin:5px;font-size:18px;border:none;border-radius:8px;background:#00c853;cursor:pointer}
-.pay-buttons button:hover{background:#00a846}
-
-/* ADMIN SEKME */
-.admin-tabs button{
-padding:10px;margin:5px;border:none;border-radius:6px;background:#1f2937;color:white;cursor:pointer}
-.admin-tabs button:hover{background:#00e5ff;color:black}
-
-/* PANEL */
-.panel{display:none}
-.panel.active{display:block}
-
-/* TELEFON */
-@media(max-width:900px){
-.app{flex-direction:column}
-.sidebar{width:100%;flex-direction:row;overflow:auto}
-.cart{width:100%;border-left:none;border-top:2px solid #00e5ff}
-.card{width:45%}
-}
-@media(max-width:500px){
-.card{width:100%}
-}
-input{padding:8px;margin:5px;width:100%}
-</style>
+<title>Free Restaurant POS</title>
+<link rel="stylesheet" href="style.css">
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js" defer></script>
 </head>
-
 <body>
 <div class="app">
-
-<!-- SOL MENÜ -->
-<div class="sidebar">
-<h2>🧾 LEZZET-İ ALA POS</h2>
-<button onclick="showPanel('products')">🍔 Ürünler</button>
-<button onclick="showPanel('tables')">🍽️ Masalar</button>
-<button onclick="showPanel('payment')">💰 Ödeme</button>
-<button onclick="showPanel('admin')">⚙️ Admin Panel</button>
+  <header class="top-bar">
+    <div class="logo">Free POS</div>
+    <div class="user-info">Hoşgeldin, <span id="username"></span></div>
+    <div class="clock" id="clock"></div>
+  </header>
+  <div class="main-content">
+    <div class="categories">
+      <button data-category="ana-yemek">Ana Yemek</button>
+      <button data-category="tatli">Tatlı</button>
+      <button data-category="icecek">İçecek</button>
+    </div>
+    <div class="products-grid" id="products-grid">
+      <!-- Ürünler buraya JS ile eklenecek -->
+    </div>
+    <div class="cart" id="cart">
+      <h2>Adisyon</h2>
+      <div id="cart-items"></div>
+      <div id="total">Toplam: 0 TL</div>
+      <button id="pay-button">Ödeme</button>
+    </div>
+  </div>
 </div>
-
-<!-- ORTA -->
-<div class="main">
-
-<!-- ÜRÜNLER -->
-<div id="products" class="panel active">
-<h2>Ürünler</h2>
-<div id="productList"></div>
-</div>
-
-<!-- MASALAR -->
-<div id="tables" class="panel">
-<h2>Masalar</h2>
-<div id="tableList"></div>
-<button onclick="addTable()">➕ Masa Ekle</button>
-</div>
-
-<!-- ÖDEME -->
-<div id="payment" class="panel">
-<h2>Ödeme</h2>
-<div class="pay-buttons">
-<button onclick="pay('Nakit')">💵 Nakit</button>
-<button onclick="pay('Kart')">💳 Kart</button>
-<button onclick="pay('QR')">📱 QR</button>
-</div>
-<h3 id="payResult"></h3>
-</div>
-
-<!-- ADMIN -->
-<div id="admin" class="panel">
-<h2>⚙️ Admin Panel</h2>
-
-<div class="admin-tabs">
-<button onclick="showAdminTab('adminProducts')">📦 Ürün Yönetimi</button>
-<button onclick="showAdminTab('adminTables')">🍽️ Masa Yönetimi</button>
-<button onclick="showAdminTab('adminSales')">📊 Satış Geçmişi</button>
-<button onclick="showAdminTab('adminReport')">💰 Kasa Raporu</button>
-</div>
-
-<!-- ÜRÜN YÖNETİMİ -->
-<div id="adminProducts" class="adminTab active">
-<h3>Ürün Ekle</h3>
-<input id="pName" placeholder="Ürün adı">
-<input id="pPrice" placeholder="Fiyat">
-<button onclick="addProduct()">Ekle</button>
-</div>
-
-<!-- MASA YÖNETİMİ -->
-<div id="adminTables" class="adminTab">
-<h3>Masa Listesi</h3>
-<div id="adminTableList"></div>
-</div>
-
-<!-- SATIŞ GEÇMİŞİ -->
-<div id="adminSales" class="adminTab">
-<h3>Satış Geçmişi</h3>
-<button onclick="clearSales()">🗑️ Hepsini Sil</button>
-<div id="salesList"></div>
-</div>
-
-<!-- KASA RAPORU -->
-<div id="adminReport" class="adminTab">
-<h3>Bugünkü Ciro</h3>
-<h1 id="dailyTotal">0 TL</h1>
-</div>
-
-</div>
-
-</div>
-
-<!-- SEPET -->
-<div class="cart">
-<h3>Sepet</h3>
-<div id="cartList"></div>
-<div class="cart-total">Toplam: <span id="total">0</span> TL</div>
-</div>
-
-</div>
-
-<script>
-// DATA
-let products = JSON.parse(localStorage.getItem("products")) || [
-{name:"Köfte",price:120},
-{name:"Kokoreç",price:140}
-];
-let tables = JSON.parse(localStorage.getItem("tables")) || ["Masa 1"];
-let sales = JSON.parse(localStorage.getItem("sales")) || [];
-let cart=[];
-
-// PANEL GÖSTER
-function showPanel(id){
-document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
-// ADMIN SEKME
-function showAdminTab(id){
-document.querySelectorAll(".adminTab").forEach(t=>t.style.display="none");
-document.getElementById(id).style.display="block";
-}
-showAdminTab("adminProducts");
-
-// ÜRÜNLER
-function renderProducts(){
-let html="";
-products.forEach((p,i)=>{
-html+=`<div class="card" onclick="addCart(${i})">${p.name}<br>${p.price} TL</div>`;
-});
-productList.innerHTML=html;
-}
-renderProducts();
-
-// MASALAR
-function renderTables(){
-let html="";
-tables.forEach((t,i)=>{
-html+=`<div class="card">${t} <button onclick="delTable(${i})">❌</button></div>`;
-});
-tableList.innerHTML=html;
-adminTableList.innerHTML=html;
-}
-renderTables();
-
-function addTable(){
-let name=prompt("Masa adı");
-if(name){tables.push(name);save();}
-renderTables();
-}
-function delTable(i){
-tables.splice(i,1);save();renderTables();
-}
-
-// SEPET
-function addCart(i){
-cart.push(products[i]);
-renderCart();
-}
-function renderCart(){
-let total=0,html="";
-cart.forEach(c=>{total+=Number(c.price);html+=`<div>${c.name} - ${c.price} TL</div>`});
-cartList.innerHTML=html;
-document.getElementById("total").innerText=total;
-}
-
-// ÖDEME + SATIŞ KAYDI
-function pay(method){
-let total=0;
-cart.forEach(c=>total+=Number(c.price));
-
-sales.push({
-date:new Date().toLocaleString(),
-method,
-items:cart.map(c=>c.name),
-total
-});
-saveSales();
-renderSales();
-renderReport();
-
-document.getElementById("payResult").innerHTML="✅ "+method+" ile ödeme alındı";
-cart=[];renderCart();
-}
-
-// ÜRÜN EKLE
-function addProduct(){
-let name=pName.value;
-let price=pPrice.value;
-if(name && price){
-products.push({name,price});
-save();
-renderProducts();
-alert("Ürün eklendi");
-}
-}
-
-// SATIŞ GÖSTER
-function renderSales(){
-let html="";
-sales.forEach((s,i)=>{
-html+=`<div class="card">
-🕒 ${s.date}<br>
-💳 ${s.method}<br>
-🧾 ${s.items.join(", ")}<br>
-💰 ${s.total} TL<br>
-<button onclick="delSale(${i})">Sil</button>
-</div>`;
-});
-salesList.innerHTML=html;
-}
-renderSales();
-
-// RAPOR
-function renderReport(){
-let sum=0;
-sales.forEach(s=>sum+=Number(s.total));
-dailyTotal.innerText=sum+" TL";
-}
-renderReport();
-
-// SATIŞ SİL
-function delSale(i){
-sales.splice(i,1);saveSales();renderSales();renderReport();
-}
-function clearSales(){
-if(confirm("Tüm satışlar silinsin mi?")){
-sales=[];saveSales();renderSales();renderReport();
-}
-}
-
-// KAYDET
-function save(){
-localStorage.setItem("products",JSON.stringify(products));
-localStorage.setItem("tables",JSON.stringify(tables));
-}
-function saveSales(){
-localStorage.setItem("sales",JSON.stringify(sales));
-}
-</script>
-
 </body>
-  </html>
+</html>
